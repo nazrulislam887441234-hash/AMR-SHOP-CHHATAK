@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - AMR SHOP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Hind Siliguri', sans-serif; background: #f8fafc; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.5); }
+        input, select, textarea { border: 2px solid #e2e8f0; outline: none; transition: 0.3s; }
+        input:focus, select:focus { border-color: #2563eb; box-shadow: 0 0 10px rgba(37, 99, 235, 0.1); }
+        .success-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; }
+    </style>
+</head>
+<body class="pb-20">
+
+    <div id="successScreen" class="success-overlay">
+        <div class="text-7xl mb-4">🎉</div>
+        <h1 class="text-3xl font-black text-slate-800">অর্ডার সফল হয়েছে!</h1>
+        <p class="text-slate-500 mt-2">আপনার অর্ডারটি আমাদের সিস্টেমে জমা হয়েছে।</p>
+        <button onclick="location.href='index.html'" class="mt-8 bg-blue-600 text-white px-10 py-4 rounded-full font-bold">হোম পেইজে ফিরুন</button>
+    </div>
+
+    <div class="max-w-2xl mx-auto p-4 md:p-8">
+        <h1 class="text-2xl font-black text-slate-800 mb-8 border-l-4 border-blue-600 pl-4">চেকআউট</h1>
+
+        <div class="grid gap-6">
+            <div class="glass p-6 rounded-[2rem] shadow-sm">
+                <h3 class="font-bold mb-4 text-blue-600">১. পার্সোনাল তথ্য</h3>
+                <div class="space-y-4">
+                    <input type="text" id="custName" placeholder="আপনার নাম" class="w-full p-4 rounded-2xl">
+                    <input type="number" id="custPhone" placeholder="ফোন নাম্বার" class="w-full p-4 rounded-2xl">
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="text" id="division" placeholder="বিভাগের নাম" class="p-4 rounded-2xl font-bold">
+                        <input type="text" id="district" placeholder="জেলার নাম" oninput="calculateDelivery()" class="p-4 rounded-2xl font-bold">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="text" id="thana" placeholder="থানা/উপজেলা" class="p-4 rounded-2xl font-bold">
+                        <input type="text" id="area" placeholder="মহল্লা/বাড়ি নং" class="p-4 rounded-2xl">
+                    </div>
+                    <textarea id="note" placeholder="আমাদের কিছু বলতে চাইলে লিখুন..." class="w-full p-4 rounded-2xl h-24"></textarea>
+                </div>
+            </div>
+
+            <div class="glass p-6 rounded-[2rem] shadow-sm">
+                <h3 class="font-bold mb-4 text-blue-600">২. অর্ডার রিভিউ</h3>
+                <div id="cart-list" class="space-y-4">
+                    </div>
+
+                <div class="mt-6 p-4 bg-slate-50 rounded-2xl">
+                    <div class="flex gap-2">
+                        <input type="text" id="promoInput" placeholder="প্রমো কোড" class="flex-1 p-3 rounded-xl uppercase font-bold text-sm">
+                        <button onclick="applyPromo()" class="bg-slate-800 text-white px-6 rounded-xl font-bold text-sm">Apply</button>
+                    </div>
+                    <p id="promoMsg" class="text-xs mt-2 font-bold"></p>
+                </div>
+            </div>
+
+            <div class="glass p-6 rounded-[2rem] shadow-sm">
+                <h3 class="font-bold mb-4 text-blue-600">৩. পেমেন্ট মেথড</h3>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <button onclick="setPayment('cod')" id="btn-cod" class="p-4 rounded-2xl border-2 border-blue-600 bg-blue-50 font-bold text-sm">Cash on Delivery</button>
+                    <button onclick="setPayment('online')" id="btn-online" class="p-4 rounded-2xl border-2 border-slate-100 font-bold text-sm">Online Payment</button>
+                </div>
+
+                <div id="online-details" class="hidden space-y-4 bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                    <div class="text-xs font-bold text-blue-600 mb-2">নিচের নাম্বারে টাকা পাঠিয়ে তথ্য দিন:</div>
+                    <div class="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm">
+                        <span>বিকাশ/নগদ: <b>01727003670</b></span>
+                        <button onclick="copy('01727003670')" class="text-blue-600 text-xs font-black">COPY</button>
+                    </div>
+                    <div class="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm">
+                        <span>রকেট: <b>01316487435</b></span>
+                        <button onclick="copy('01316487435')" class="text-blue-600 text-xs font-black">COPY</button>
+                    </div>
+
+                    <select id="payMethod" class="w-full p-4 rounded-xl text-sm font-bold mt-4">
+                        <option value="Bkash">বিকাশ (Bkash)</option>
+                        <option value="Nagad">নগদ (Nagad)</option>
+                        <option value="Rocket">রকেট (Rocket)</option>
+                    </select>
+                    <input type="number" id="senderNum" placeholder="কোন নাম্বার থেকে পাঠিয়েছেন?" class="w-full p-4 rounded-xl text-sm">
+                    <input type="text" id="trxId" placeholder="Transaction ID (TrxID)" class="w-full p-4 rounded-xl text-sm">
+                </div>
+            </div>
+
+            <div class="glass p-8 rounded-[2.5rem] shadow-xl text-slate-800">
+                <div class="flex justify-between mb-2"><span>পণ্যের দাম:</span> <span id="subtotal">৳০</span></div>
+                <div class="flex justify-between mb-2"><span>ডেলিভারি চার্জ:</span> <span id="delivery">৳০</span></div>
+                <div id="disRow" class="flex justify-between mb-2 text-green-600 hidden"><span>ডিসকাউন্ট:</span> <span id="discount">৳০</span></div>
+                <hr class="my-4">
+                <div class="flex justify-between text-2xl font-black"><span>মোট:</span> <span id="total" class="text-blue-600">৳০</span></div>
+                
+                <button onclick="preConfirm()" id="finalBtn" class="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black mt-8 shadow-2xl shadow-blue-200">অর্ডার কনফার্ম করুন</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCTl215ewyVmGvbMcdO0jiRB1J5pL2mbL4",
+            authDomain: "amrshopchhatak.firebaseapp.com",
+            projectId: "amrshopchhatak",
+            storageBucket: "amrshopchhatak.firebasestorage.app",
+            messagingSenderId: "784648928211",
+            appId: "1:784648928211:web:caa0b9a5713f95be330d26"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let pMethod = "cod";
+        let discountAmt = 0;
+        let deliveryCharge = 0;
+
+        // URL থেকে তথ্য চেক করে অটোমেটিক Note আপডেট করা
+        function autoFillNote() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlColor = urlParams.get('color');
+            const urlSize = urlParams.get('size');
+            let noteContent = "";
+
+            if(urlColor || urlSize) {
+                noteContent = `কালার: ${urlColor || 'সিলেক্ট করা হয়নি'}, সাইজ: ${urlSize || 'সিলেক্ট করা হয়নি'}`;
+            } else if (cart.length > 0) {
+                // কার্টে থাকা সব পণ্যের কালার-সাইজ নোট বক্সে যোগ করা
+                cart.forEach((p, i) => {
+                    noteContent += `${p.name} - ${p.color || 'No Color'}, ${p.size || 'No Size'}\n`;
+                });
+            }
+            document.getElementById('note').value = noteContent;
+        }
+
+        window.calculateDelivery = () => {
+            const dist = document.getElementById('district').value.trim();
+            const sub = cart.reduce((sum, p) => sum + (p.price * (p.qty || 1)), 0);
+            
+            let isDhaka = dist === "Dhaka" || dist === "ঢাকা";
+            let base = isDhaka ? 60 : 120;
+            let extra = (cart.length > 1) ? (cart.length - 1) * 10 : 0;
+            deliveryCharge = base + extra;
+
+            document.getElementById('subtotal').innerText = "৳" + sub;
+            document.getElementById('delivery').innerText = "৳" + deliveryCharge;
+            document.getElementById('total').innerText = "৳" + (sub + deliveryCharge - discountAmt);
+        };
+
+        window.renderCart = () => {
+            const list = document.getElementById('cart-list');
+            list.innerHTML = cart.length ? "" : "কার্ট খালি!";
+            cart.forEach((p, index) => {
+                list.innerHTML += `
+                    <div class="flex items-center gap-4 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative">
+                        <img src="${p.img}" class="w-16 h-16 rounded-xl object-cover">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-sm">${p.name}</h4>
+                            <p class="text-blue-600 font-black text-xs">৳${p.price}</p>
+                            <p class="text-[10px] text-slate-400">${p.color || ''} ${p.size || ''}</p>
+                        </div>
+                        <button onclick="removeItem(${index})" class="text-red-400 p-2">✕</button>
+                    </div>
+                `;
+            });
+            calculateDelivery();
+        };
+
+        window.removeItem = (idx) => {
+            cart.splice(idx, 1);
+            localStorage.setItem('cart', JSON.stringify(cart));
+            renderCart();
+            autoFillNote(); // রিমুভ করার পর নোট আপডেট
+        };
+
+        window.setPayment = (type) => {
+            pMethod = type;
+            document.getElementById('btn-cod').className = type === 'cod' ? 'p-4 rounded-2xl border-2 border-blue-600 bg-blue-50 font-bold text-sm' : 'p-4 rounded-2xl border-2 border-slate-100 font-bold text-sm';
+            document.getElementById('btn-online').className = type === 'online' ? 'p-4 rounded-2xl border-2 border-blue-600 bg-blue-50 font-bold text-sm' : 'p-4 rounded-2xl border-2 border-slate-100 font-bold text-sm';
+            document.getElementById('online-details').classList.toggle('hidden', type !== 'online');
+        };
+
+        window.applyPromo = async () => {
+            const code = document.getElementById('promoInput').value;
+            const msg = document.getElementById('promoMsg');
+            const q = query(collection(db, "promocodes"), where("code", "==", code.toUpperCase()));
+            const snap = await getDocs(q);
+
+            if(!snap.empty) {
+                discountAmt = snap.docs[0].data().amount;
+                msg.innerText = `অভিনন্দন! ৳${discountAmt} ছাড় পেয়েছেন।`;
+                msg.className = "text-green-500 text-xs mt-2 font-bold";
+                document.getElementById('disRow').classList.remove('hidden');
+                document.getElementById('discount').innerText = "-৳" + discountAmt;
+                calculateDelivery();
+            } else {
+                alert("ভুল প্রমো কোড!");
+                discountAmt = 0;
+            }
+        };
+
+        window.preConfirm = () => {
+            if(confirm("আপনি কি নিশ্চিত অর্ডার করতে চান?")) {
+                confirmOrder();
+            }
+        };
+
+        async function confirmOrder() {
+            const orderData = {
+                orderId: "AMR" + Date.now().toString().slice(-5),
+                customerName: document.getElementById('custName').value,
+                customerPhone: document.getElementById('custPhone').value,
+                customerAddress: `${document.getElementById('area').value}, ${document.getElementById('thana').value}, ${document.getElementById('district').value}, ${document.getElementById('division').value}`,
+                products: cart,
+                subtotal: cart.reduce((sum, p) => sum + (p.price * (p.qty || 1)), 0),
+                deliveryCharge: deliveryCharge,
+                discount: discountAmt,
+                totalPrice: (cart.reduce((sum, p) => sum + (p.price * (p.qty || 1)), 0) + deliveryCharge - discountAmt),
+                paymentMethod: pMethod,
+                onlinePayDetails: pMethod === 'online' ? {
+                    platform: document.getElementById('payMethod').value,
+                    sender: document.getElementById('senderNum').value,
+                    trx: document.getElementById('trxId').value
+                } : null,
+                status: "pending",
+                note: document.getElementById('note').value,
+                time: serverTimestamp()
+            };
+
+            if(!orderData.customerName || !orderData.customerPhone || !document.getElementById('district').value) return alert("দয়া করে সব তথ্য পূরণ করুন!");
+
+            try {
+                await addDoc(collection(db, "orders"), orderData);
+                localStorage.removeItem('cart');
+                document.getElementById('successScreen').style.display = "flex";
+            } catch (e) { alert(e.message); }
+        }
+
+        window.copy = (text) => {
+            navigator.clipboard.writeText(text);
+            alert("নাম্বার কপি হয়েছে!");
+        }
+
+        renderCart();
+        autoFillNote(); // পেজ লোড হওয়ার সাথে সাথে নোট অটো পূরণ হবে
+    </script>
+</body>
+</html>
