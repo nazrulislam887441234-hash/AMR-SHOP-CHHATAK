@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Tracker- AMR SHOP CHHATAK </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Hind Siliguri', sans-serif; 
+            background: radial-gradient(circle at top right, #eff6ff, #f8fafc);
+            min-height: 100vh;
+        }
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.7); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.02);
+        }
+        .step-line-animated { width: 3px; height: 45px; background: #e2e8f0; margin-left: 14px; position: relative; }
+        .step-line-fill { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #2563eb; }
+        .premium-dot { width: 32px; height: 32px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #f1f5f9; border: 2px solid #e2e8f0; }
+        .dot-active { background: #2563eb; border-color: #2563eb; color: white; box-shadow: 0 0 15px rgba(37, 99, 235, 0.3); }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-reveal { animation: slideUp 0.5s ease-out; }
+    </style>
+</head>
+<body class="pb-10">
+
+    <nav class="sticky top-0 z-50 px-6 py-5 flex items-center justify-between glass-card mb-6">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">AMR <span class="text-blue-600">STATUS</span></h1>
+            <p class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Premium Shopping Experience</p>
+        </div>
+        <a href="index.html" class="bg-slate-900 text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-blue-600 transition-all">শপিং করুন</a>
+    </nav>
+
+    <div class="max-w-xl mx-auto px-6">
+        <div class="glass-card p-8 rounded-[2.5rem] mb-10 text-center">
+            <h2 class="text-xl font-bold text-slate-800 mb-2">আপনার পার্সেলটি কোথায়?</h2>
+            <p class="text-slate-500 text-sm mb-6">অর্ডারকৃত ফোন নাম্বার দিয়ে ট্র্যাক করুন</p>
+            
+            <div class="relative">
+                <input type="number" id="phoneInput" placeholder="01XXXXXXXXX" 
+                    class="w-full p-5 pl-14 bg-white/50 rounded-3xl outline-none border-2 border-slate-100 focus:border-blue-500 transition-all text-lg font-semibold">
+                <div class="absolute left-5 top-6 text-slate-400">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                </div>
+                <button id="searchBtn" class="mt-4 w-full bg-blue-600 text-white py-5 rounded-3xl font-black text-sm uppercase tracking-widest shadow-xl hover:bg-blue-700 active:scale-95 transition-all">
+                    সার্চ করুন
+                </button>
+            </div>
+        </div>
+
+        <div id="orderListSection" class="hidden">
+            <div class="flex items-center justify-between mb-6 px-2">
+                <h3 class="font-bold text-slate-800 text-lg">আপনার অর্ডারসমূহ</h3>
+                <span id="orderCount" class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-bold">0</span>
+            </div>
+            <div id="ordersContainer" class="grid gap-5"></div>
+        </div>
+    </div>
+
+    <div id="statusModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-6">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 relative animate-reveal shadow-2xl max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal()" class="absolute top-6 right-6 bg-slate-100 p-2 rounded-full text-slate-400 hover:text-red-500 transition-all">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCTl215ewyVmGvbMcdO0jiRB1J5pL2mbL4",
+            authDomain: "amrshopchhatak.firebaseapp.com",
+            projectId: "amrshopchhatak",
+            storageBucket: "amrshopchhatak.firebasestorage.app",
+            messagingSenderId: "784648928211",
+            appId: "1:784648928211:web:caa0b9a5713f95be330d26"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        let currentOrders = [];
+
+        window.fetchUserOrders = async () => {
+            const phone = document.getElementById('phoneInput').value.trim();
+            if (!phone) {
+                alert("অনুগ্রহ করে ফোন নাম্বার দিন");
+                return;
+            }
+
+            const btn = document.getElementById('searchBtn');
+            btn.innerText = "খোঁজা হচ্ছে...";
+            btn.disabled = true;
+
+            try {
+                // ডাটাবেজে ফোন নাম্বার String হিসেবে থাকলে সার্চ করবে
+                const q = query(collection(db, "orders"), where("customerPhone", "==", phone));
+                const snap = await getDocs(q);
+                
+                currentOrders = [];
+                snap.forEach(doc => {
+                    currentOrders.push({ id: doc.id, ...doc.data() });
+                });
+
+                if (currentOrders.length === 0) {
+                    alert("এই নাম্বারে কোনো অর্ডার পাওয়া যায়নি!");
+                    document.getElementById('orderListSection').classList.add('hidden');
+                } else {
+                    renderOrderList();
+                }
+            } catch (err) {
+                console.error(err);
+                alert("সমস্যা হয়েছে: " + err.message);
+            } finally {
+                btn.innerText = "সার্চ করুন";
+                btn.disabled = false;
+            }
+        };
+
+        function renderOrderList() {
+            const container = document.getElementById('ordersContainer');
+            document.getElementById('orderListSection').classList.remove('hidden');
+            document.getElementById('orderCount').innerText = currentOrders.length;
+            container.innerHTML = "";
+
+            currentOrders.forEach(o => {
+                // ফায়ারবেস থেকে প্রথম প্রোডাক্টের ছবি ও নাম নেওয়া
+                const product = (o.products && o.products.length > 0) ? o.products[0] : null;
+                const pImg = product ? product.img : 'https://via.placeholder.com/150';
+                const pName = product ? product.name : 'পণ্য';
+
+                container.innerHTML += `
+                    <div onclick="showOrderDetails('${o.id}')" class="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm cursor-pointer hover:scale-[1.02] transition-all flex items-center gap-4">
+                        <img src="${pImg}" class="w-20 h-20 rounded-2xl object-cover border">
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <h4 class="font-bold text-slate-800 text-sm truncate w-32">${pName}</h4>
+                                <span class="text-[9px] bg-blue-50 text-blue-600 px-2 py-1 rounded-lg font-black uppercase">${o.status}</span>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1">অর্ডার ID: ${o.orderId || 'N/A'}</p>
+                            <p class="text-sm font-black text-blue-600 mt-1">৳${o.totalPrice}</p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        window.showOrderDetails = (orderId) => {
+            const order = currentOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const content = document.getElementById('modalContent');
+            document.getElementById('statusModal').classList.remove('hidden');
+
+            const states = [
+                { key: 'pending', label: 'অর্ডার প্লেস করা হয়েছে', icon: '📝' },
+                { key: 'confirmed', label: 'অর্ডার নিশ্চিত হয়েছে', icon: '✅' },
+                { key: 'shipped', label: 'পার্সেলটি কুরিয়ারে দেওয়া হয়েছে', icon: '🚚' },
+                { key: 'delivered', label: 'সফলভাবে ডেলিভারি হয়েছে', icon: '🎁' }
+            ];
+
+            // বর্তমান স্ট্যাটাসের ইনডেক্স বের করা
+            const currentIndex = states.findIndex(s => s.key === order.status);
+            
+            let html = `
+                <div class="text-center mb-8">
+                    <h3 class="text-xl font-black text-slate-800">অর্ডার ট্র্যাকিং</h3>
+                    <p class="text-xs text-slate-400 font-bold uppercase mt-1 tracking-widest">${order.orderId || 'ID নেই'}</p>
+                </div>
+                <div class="space-y-0">
+            `;
+
+            states.forEach((s, idx) => {
+                const isActive = idx <= currentIndex;
+                const isLast = idx === states.length - 1;
+                
+                html += `
+                    <div class="flex items-start">
+                        <div class="flex flex-col items-center">
+                            <div class="premium-dot ${isActive ? 'dot-active' : ''}">
+                                ${isActive ? '✓' : idx + 1}
+                            </div>
+                            ${!isLast ? `
+                                <div class="step-line-animated">
+                                    <div class="${idx < currentIndex ? 'step-line-fill' : ''}"></div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="ml-6 pb-6">
+                            <p class="font-bold ${isActive ? 'text-slate-800' : 'text-slate-300'} text-sm">${s.label}</p>
+                            <p class="text-[10px] text-slate-400 font-medium">${s.icon} ${isActive ? 'সম্পন্ন' : 'অপেক্ষমাণ'}</p>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const product = (order.products && order.products.length > 0) ? order.products[0] : null;
+
+            html += `</div>
+                <div class="mt-6 pt-6 border-t border-slate-100">
+                    <p class="text-xs font-black text-slate-400 uppercase mb-3">পণ্যের বিবরণ</p>
+                    <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl">
+                        <img src="${product ? product.img : 'https://via.placeholder.com/150'}" class="w-12 h-12 rounded-lg object-cover">
+                        <div>
+                            <p class="text-xs font-bold text-slate-800">${product ? product.name : 'পণ্য'}</p>
+                            <p class="text-[10px] font-bold text-blue-600">মোট: ৳${order.totalPrice}</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-[11px] text-slate-500 font-bold bg-blue-50/50 p-3 rounded-xl border border-blue-100/50">
+                        📍 ঠিকানা: ${order.customerAddress || 'দেওয়া হয়নি'}
+                    </div>
+                </div>
+            `;
+
+            content.innerHTML = html;
+        };
+
+        window.closeModal = () => {
+            document.getElementById('statusModal').classList.add('hidden');
+        };
+
+        // সার্চ বাটনে ফাংশন যুক্ত করা
+        document.getElementById('searchBtn').addEventListener('click', window.fetchUserOrders);
+    </script>
+</body>
+</html>
