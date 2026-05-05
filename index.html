@@ -13,13 +13,19 @@
         .product-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .product-card:hover { transform: translateY(-5px); }
         .glass-nav { background: rgba(37, 99, 235, 0.95); backdrop-filter: blur(12px); }
-        .swiper { width: 100%; aspect-ratio: 16 / 9; }
+        
+        /* Banner Sharp Edge Fix */
+        .swiper { width: 100%; aspect-ratio: 16 / 9; border-radius: 0 !important; overflow: hidden; }
+        .swiper-slide img { width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
+
         .shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
         
-        /* Sidebar Styles */
         #sidebar { transition: transform 0.3s ease-in-out; transform: translateX(-100%); }
         #sidebar.open { transform: translateX(0); }
+
+        /* Prevent Layout Shift */
+        #p-grid, #pinned-grid { min-height: 200px; }
     </style>
 </head>
 <body class="pb-24">
@@ -42,20 +48,20 @@
             <h1 class="text-xl md:text-2xl font-extrabold text-white flex-1 text-center md:text-left">AMR <span class="text-yellow-400">SHOP</span></h1>
             
             <div class="hidden md:block relative flex-1 max-w-xl mx-4">
-                <input type="text" id="search" oninput="searchProduct()" placeholder="নাম বা কিওয়ার্ড..." class="w-full p-3 pl-12 rounded-2xl outline-none text-sm border-none">
+                <input type="text" id="search" oninput="searchProduct(this.value)" placeholder="নাম বা কিওয়ার্ড..." class="w-full p-3 pl-12 rounded-2xl outline-none text-sm border-none">
             </div>
 
             <a href="support.html" class="bg-white/20 p-2 rounded-xl text-white">
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
             </a>
         </div>
-        <div class="md:hidden mt-3 relative">
-            <input type="text" id="searchMobile" oninput="searchProduct()" placeholder="পণ্য খুঁজুন..." class="w-full p-3 pl-12 rounded-xl outline-none text-sm border-none shadow-inner">
+        <div class="md:hidden mt-3 relative px-2">
+            <input type="text" id="searchMobile" oninput="searchProduct(this.value)" placeholder="পণ্য খুঁজুন..." class="w-full p-3 pl-12 rounded-xl outline-none text-sm border-none shadow-inner">
         </div>
     </div>
 
-    <div class="max-w-[1400px] mx-auto px-4 mt-6">
-        <div class="swiper mySwiper rounded-[2rem] shadow-2xl overflow-hidden bg-gray-200 border-4 border-white">
+    <div class="max-w-[1400px] mx-auto mt-6">
+        <div class="swiper mySwiper shadow-xl bg-gray-200">
             <div class="swiper-wrapper" id="banner-wrap">
                 <div class="swiper-slide shimmer"></div>
             </div>
@@ -85,7 +91,7 @@
 
     <div class="max-w-[1400px] mx-auto p-4 mt-6">
         <div id="cat-tabs" class="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-            <button onclick="filterCat('all')" id="btn-all" class="bg-blue-600 text-white px-8 py-3 rounded-2xl text-sm font-bold shrink-0 shadow-lg">সব পণ্য</button>
+            <button onclick="filterCat('all', this)" id="btn-all" class="bg-blue-600 text-white px-8 py-3 rounded-2xl text-sm font-bold shrink-0 shadow-lg">সব পণ্য</button>
         </div>
     </div>
 
@@ -114,7 +120,6 @@
         const db = getFirestore(app);
         let allProducts = [];
 
-        // Sidebar Toggle
         window.toggleMenu = () => {
             const side = document.getElementById('sidebar');
             const over = document.getElementById('overlay');
@@ -122,7 +127,6 @@
             over.classList.toggle('hidden');
         };
 
-        // Load Social Links for Sidebar
         onSnapshot(collection(db, "socials"), (snap) => {
             const list = document.getElementById('social-links-list');
             list.innerHTML = "";
@@ -148,22 +152,28 @@
                     wrap.innerHTML += `<div class="swiper-slide"><img src="${d.data().url}" class="w-full h-full object-cover"></div>`;
                 });
             }
-            new Swiper(".mySwiper", { autoplay: { delay: 7000 }, loop: true, pagination: { el: ".swiper-pagination", clickable: true } });
+            new Swiper(".mySwiper", { 
+                autoplay: { delay: 4000 }, 
+                loop: true, 
+                pagination: { el: ".swiper-pagination", clickable: true }
+            });
         }
 
         async function loadProducts() {
             const q = query(collection(db, "products"), orderBy("time", "desc"));
-            const pSnap = await getDocs(q);
-            allProducts = pSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-            
-            const pinned = allProducts.filter(p => p.isPinned === true);
-            if(pinned.length > 0) {
-                document.getElementById('top-products-section').classList.remove('hidden');
-                render(pinned, 'pinned-grid');
-            }
-
-            render(allProducts, 'p-grid');
-            renderCats();
+            onSnapshot(q, (pSnap) => {
+                allProducts = pSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                
+                const pinned = allProducts.filter(p => p.isPinned === true);
+                if(pinned.length > 0) {
+                    document.getElementById('top-products-section').classList.remove('hidden');
+                    render(pinned, 'pinned-grid');
+                } else {
+                    document.getElementById('top-products-section').classList.add('hidden');
+                }
+                render(allProducts, 'p-grid');
+                renderCats();
+            });
         }
 
         function render(items, targetId) {
@@ -172,7 +182,7 @@
             items.forEach(p => {
                 grid.innerHTML += `
                 <div onclick="location.href='product.html?id=${p.id}'" class="product-card group bg-white rounded-3xl shadow-md border border-slate-100 overflow-hidden cursor-pointer relative">
-                    <img src="${p.images[0]}" class="w-full aspect-square object-cover group-hover:scale-105 transition-transform">
+                    <img src="${p.images[0]}" class="w-full aspect-square object-cover group-hover:scale-105 transition-transform" loading="lazy">
                     <div class="p-4">
                         <h3 class="text-sm font-bold text-slate-800 truncate">${p.name}</h3>
                         <p class="text-blue-600 font-bold text-lg">৳${p.price}</p>
@@ -182,25 +192,45 @@
         }
 
         function renderCats() {
-            const cats = [...new Set(allProducts.map(p => p.category))];
+            const cats = [...new Set(allProducts.map(p => p.category))].filter(Boolean);
             const tabContainer = document.getElementById('cat-tabs');
+            const currentCats = Array.from(tabContainer.querySelectorAll('button')).map(b => b.innerText);
+            
             cats.forEach(c => {
-                if(c) tabContainer.innerHTML += `<button onclick="filterCat('${c}', this)" class="bg-white text-gray-500 px-8 py-3 rounded-2xl text-sm font-bold shrink-0 border border-slate-100 transition-all">${c}</button>`;
+                if(!currentCats.includes(c)) {
+                    const btn = document.createElement('button');
+                    btn.className = "bg-white text-gray-500 px-8 py-3 rounded-2xl text-sm font-bold shrink-0 border border-slate-100 transition-all";
+                    btn.innerText = c;
+                    btn.onclick = (e) => filterCat(c, e.target);
+                    tabContainer.appendChild(btn);
+                }
             });
         }
 
         window.filterCat = (cat, btn) => {
-            document.querySelectorAll('#cat-tabs button').forEach(b => b.className = "bg-white text-gray-500 px-8 py-3 rounded-2xl text-sm font-bold shrink-0 border border-slate-100");
-            if(btn) btn.className = "bg-blue-600 text-white px-8 py-3 rounded-2xl text-sm font-bold shrink-0 shadow-lg shadow-blue-200";
+            document.querySelectorAll('#cat-tabs button').forEach(b => {
+                b.className = "bg-white text-gray-500 px-8 py-3 rounded-2xl text-sm font-bold shrink-0 border border-slate-100";
+            });
+            btn.className = "bg-blue-600 text-white px-8 py-3 rounded-2xl text-sm font-bold shrink-0 shadow-lg shadow-blue-200";
             render(cat === 'all' ? allProducts : allProducts.filter(p => p.category === cat), 'p-grid');
         };
 
-        window.searchProduct = () => {
-            const q = (document.getElementById('search').value || document.getElementById('searchMobile').value).toLowerCase();
-            const filtered = allProducts.filter(p => p.name.toLowerCase().includes(q) || (p.category && p.category.toLowerCase().includes(q)));
+        window.searchProduct = (val) => {
+            const queryText = val.toLowerCase().trim();
+            if(!queryText) {
+                render(allProducts, 'p-grid');
+                return;
+            }
+            const filtered = allProducts.filter(p => {
+                const nameMatch = p.name ? p.name.toLowerCase().includes(queryText) : false;
+                const catMatch = p.category ? p.category.toLowerCase().includes(queryText) : false;
+                const keywordMatch = p.keywords ? p.keywords.some(k => k.toLowerCase().includes(queryText)) : false;
+                return nameMatch || catMatch || keywordMatch;
+            });
             render(filtered, 'p-grid');
         };
 
+        // Run functions immediately to prevent layout pop
         loadBanners();
         loadProducts();
     </script>
